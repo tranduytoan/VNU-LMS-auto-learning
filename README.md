@@ -1,0 +1,4 @@
+- get your access token and learningId from your browser > DevTools (F12) > Network > filter: WS > access any learning section > select the WS request that just appeared in devtools > check wss params
+- make a copy of `config.json.example` to `config.json` and fill in your access_token and learningId,...etc
+- `npm install` to install dependencies
+- `npm start` to run the script

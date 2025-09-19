@@ -1,0 +1,15 @@
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6I...",
+  "list_job": [
+    {
+      "learningId": "adc1b020-78bf-4b2b-bdc5-fcdf6f9e9b29",
+      "autoStopSeconds": 120,
+      "enable": true
+    },
+    {
+      "learningId": "0e02c9f6-0361-4d11-8a4d-511cb39f631f",
+      "autoStopSeconds": 120,
+      "enable": false
+    }
+  ]
+}

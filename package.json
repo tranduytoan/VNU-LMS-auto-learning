@@ -1,0 +1,16 @@
+{
+  "name": "auto_lms",
+  "version": "1.0.0",
+  "description": "",
+  "main": "auto.js",
+  "type": "module",
+  "scripts": {
+    "start": "node auto.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}

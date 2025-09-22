@@ -1,2 +1,7 @@
 node_modules/
+test/
+sample_response/
 config.json
+AGENTS.md
+launch.json
+.env

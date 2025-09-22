@@ -1,4 +1,31 @@
-- get your access token and learningId from your browser > DevTools (F12) > Network > filter: WS > access any learning section > select the WS request that just appeared in devtools > check wss params
-- make a copy of `config.json.example` to `config.json` and fill in your access_token and learningId,...etc
-- `npm install` to install dependencies
-- `npm start` to run the script
+## Setup
+
+```bash
+npm install
+cp .env.example .env
+```
+
+Get tokens from browser DevTools (F12) > Console tab, paste and run:
+
+```javascript
+console.log('ACCESS_TOKEN:', localStorage.getItem('access_token'));
+console.log('REFRESH_TOKEN:', localStorage.getItem('refresh_token'));
+```
+
+Copy from console output to `.env` file.
+
+## Usage
+
+```bash
+npm start
+```
+
+**Modes:**
+- **Auto**: Process all available lessons
+- **Manual**: Select specific lessons  
+- **Create config**: Generate `config.json` for batch processing
+
+**Environment:**
+- `USE_CONFIG_FILE=true/false`: Use config file or interactive mode
+
+Tests/exams are automatically skipped.

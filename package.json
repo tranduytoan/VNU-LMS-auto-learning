@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/main.js",
+    "tesuto": "node src/tesuto/server.js",
     "test": "node test/test.js"
   },
   "keywords": [],
@@ -15,6 +16,8 @@
     "axios": "^1.12.2",
     "dotenv": "^17.2.2",
     "prompt-sync": "^4.2.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
   }
 }

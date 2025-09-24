@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tìm Kiếm Câu Hỏi PLDC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Tìm Kiếm Câu Hỏi Pháp Luật Đại Cương</h1>
+            <p>Tìm kiếm nhanh các câu hỏi và đáp án trong ngân hàng câu hỏi</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Nhập từ khóa tìm kiếm (câu hỏi, đáp án)..."
+                    autocomplete="off"
+                >
+                <button id="searchBtn">Tìm kiếm</button>
+                <button id="clearBtn">Xóa</button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div id="searchInfo" class="search-info" style="display: none;"></div>
+            <div id="resultsContainer" class="results-container"></div>
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Đang tìm kiếm...</p>
+            </div>
+            <div id="noResults" class="no-results" style="display: none;">
+                <h3>Không tìm thấy kết quả</h3>
+                <p>Hãy thử tìm kiếm với từ khóa khác</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

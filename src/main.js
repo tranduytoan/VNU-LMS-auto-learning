@@ -67,20 +67,34 @@ async function askToUseConfig() {
 async function runFromConfig(config) {
     console.log('Running jobs from config...');
     
-    for (const job of config.list_job) {
+    const enabledJobs = config.list_job.filter(job => {
         if (!job.EDIT_HERE_enable) {
             console.log(`Skipping disabled job: ${job.title}`);
-            continue;
+            return false;
         }
         
         if (!job.id) {
             console.log(`Skipping job with null ID: ${job.title}`);
-            continue;
+            return false;
         }
         
-        console.log(`Processing job: ${job.title}`);
-        await processJob(job.id, job.EDIT_HERE_autoStopSeconds);
+        return true;
+    });
+    
+    if (enabledJobs.length === 0) {
+        console.log('No enabled jobs found.');
+        return true;
     }
+    
+    console.log(`Starting ${enabledJobs.length} jobs in parallel...`);
+    
+    const jobPromises = enabledJobs.map(job => {
+        console.log(`Queuing job: ${job.title}`);
+        return processJob(job.id, job.EDIT_HERE_autoStopSeconds);
+    });
+    
+    await Promise.all(jobPromises);
+    console.log('All config jobs completed.');
     
     return true;
 }
@@ -154,7 +168,9 @@ async function runAutoMode(classId) {
             return;
         }
         
-        console.log(`Found ${unfinishedLeafs.length} unfinished leafs. Starting auto processing...`);
+        console.log(`Found ${unfinishedLeafs.length} unfinished leafs. Preparing jobs...`);
+        
+        const validJobs = [];
         
         for (const leaf of unfinishedLeafs) {
             if (isTestOrExam(leaf)) {
@@ -170,12 +186,23 @@ async function runAutoMode(classId) {
             }
             
             const autoStopSeconds = calculateAutoStopSeconds(leaf);
-            console.log(`Processing: ${leaf.title} (${autoStopSeconds}s)`);
-            
-            await processJob(leafId, autoStopSeconds);
+            validJobs.push({ leafId, autoStopSeconds, title: leaf.title });
         }
         
-        console.log('Auto processing completed.');
+        if (validJobs.length === 0) {
+            console.log('No valid jobs to process.');
+            return;
+        }
+        
+        console.log(`Starting ${validJobs.length} jobs in parallel...`);
+        
+        const jobPromises = validJobs.map(job => {
+            console.log(`Queuing: ${job.title} (${job.autoStopSeconds}s)`);
+            return processJob(job.leafId, job.autoStopSeconds);
+        });
+        
+        await Promise.all(jobPromises);
+        console.log('All auto mode jobs completed.');
     } catch (error) {
         console.error('Error in auto mode:', error.message);
     }
@@ -272,62 +299,90 @@ async function createConfigFile(classId) {
 
 async function processJob(leafId, autoStopSeconds) {
     return new Promise((resolve) => {
-        console.log(`Starting job with ID: ${leafId} for ${autoStopSeconds} seconds`);
-        
-        const ws = new WebSocket('wss://lms.vnu.edu.vn/dhqg.lms.api/learninghub', {
+        const logPrefix = `[Job ${leafId}]`;
+        console.log(`${logPrefix} Starting job for ${autoStopSeconds} seconds`);
+
+        const ws = new WebSocket(`wss://lms.vnu.edu.vn/dhqg.lms.api/socket/hubs/lrs?learningId=${leafId}&access_token=${process.env.ACCESS_TOKEN}`, {
             headers: {
-                'Authorization': `Bearer ${process.env.ACCESS_TOKEN}`
+                "accept-language": "vi-VN,vi;q=0.9,en-US;q=0.6,en;q=0.5",
+                "cache-control": "no-cache",
+                "pragma": "no-cache",
+                "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+                "sec-websocket-key": "randomKey123==",
+                "sec-websocket-version": "13",
+                "cookie": "WEBSVR=app3",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
             }
         });
         
+        let lastServerHeartbeat = Date.now();
+        let heartbeatInterval;
+        let watchdogInterval;
+        
         ws.on('open', () => {
-            console.log('WebSocket connected');
-            const message = JSON.stringify({
-                protocol: "json",
-                version: 1
-            }) + RS;
-            ws.send(message);
-            
-            setTimeout(() => {
-                const startLearningMessage = JSON.stringify({
-                    type: 1,
-                    target: "StartLearning",
-                    arguments: [leafId]
-                }) + RS;
-                ws.send(startLearningMessage);
-                console.log('Learning started');
-            }, 1000);
+            console.log(`${logPrefix} WebSocket connection established`);
+            const handshake = JSON.stringify({ protocol: "json", version: 1 }) + RS;
+            ws.send(handshake);
         });
         
         ws.on('message', (data) => {
-            const message = data.toString();
-            if (message.includes('StartLearning')) {
-                console.log('Learning session confirmed');
+            const msg = data.toString().trim();
+
+            // Handshake success
+            if (msg === "{}" || msg === "{}" + RS) {
+                console.log(`${logPrefix} Handshake completed successfully`);
+                
+                // Send heartbeat every 15s
+                heartbeatInterval = setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 6 }) + RS);
+                    }
+                }, 15000);
+
+                // Watchdog: check every 5s
+                watchdogInterval = setInterval(() => {
+                    if (Date.now() - lastServerHeartbeat > 30000) {
+                        console.log(`${logPrefix} Connection timeout - no server response for 30s`);
+                        if (ws) ws.close();
+                        resolve();
+                    }
+                }, 5000);
+
+                // Auto stop timer (if >0)
+                if (autoStopSeconds > 0) {
+                    setTimeout(() => {
+                        console.log(`${logPrefix} Auto stop timer triggered`);            
+                        setTimeout(() => {
+                            ws.close();
+                            console.log(`${logPrefix} Job completed successfully\n`);
+                            resolve();
+                        }, 1000);
+                    }, autoStopSeconds * 1000);
+                } else {
+                    console.log(`${logPrefix} Running indefinitely (no auto stop)`);
+                }
+            }
+
+            // Server heartbeat 
+            if (msg.startsWith('{"type":6')) {
+                lastServerHeartbeat = Date.now();
+                // console.log(`${logPrefix} Server heartbeat received`);
             }
         });
         
         ws.on('error', (error) => {
-            console.error('WebSocket error:', error.message);
+            console.error(`${logPrefix} WebSocket error: ${error.message}`);
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            if (watchdogInterval) clearInterval(watchdogInterval);
             resolve();
         });
-        
-        setTimeout(() => {
-            console.log('Auto stopping job...');
-            if (ws.readyState === WebSocket.OPEN) {
-                const stopMessage = JSON.stringify({
-                    type: 1,
-                    target: "StopLearning",
-                    arguments: [leafId]
-                }) + RS;
-                ws.send(stopMessage);
-            }
-            
-            setTimeout(() => {
-                ws.close();
-                console.log('Job completed\n');
-                resolve();
-            }, 1000);
-        }, autoStopSeconds * 1000);
+
+        ws.on('close', () => {
+            console.log(`${logPrefix} WebSocket connection closed`);
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            if (watchdogInterval) clearInterval(watchdogInterval);
+            resolve();
+        });
     });
 }
 

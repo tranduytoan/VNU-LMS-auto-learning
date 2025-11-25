@@ -8,12 +8,12 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Load questions data
 let questions = [];
 try {
-    const data = fs.readFileSync('questions.json', 'utf8');
+    const data = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8');
     questions = JSON.parse(data);
     console.log(`Đã tải ${questions.length} câu hỏi`);
 } catch (error) {

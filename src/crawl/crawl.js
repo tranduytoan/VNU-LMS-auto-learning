@@ -36,7 +36,7 @@ async function crawlAll() {
   }
 
   // Lưu ra file JSON
-  fs.writeFileSync("questions.json", JSON.stringify(allQuestions, null, 2), "utf-8");
+  fs.writeFileSync(path.join(__dirname, 'result', 'questions.json'), JSON.stringify(allQuestions, null, 2), "utf-8");
   console.log("Hoàn tất. Đã lưu vào questions.json");
 }
 

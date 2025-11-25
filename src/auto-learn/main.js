@@ -1,4 +1,4 @@
-import { services } from "./services.js";
+import { services } from "../services.js";
 import WebSocket from "ws";
 import fs from "fs";
 import prompts from "prompt-sync";
@@ -43,7 +43,7 @@ function validateConfig(config) {
 
 async function askToUseConfig() {
     try {
-        const configData = fs.readFileSync('./config.json', 'utf8');
+        const configData = fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8');
         const config = JSON.parse(configData);
         
         if (!validateConfig(config)) {
@@ -289,7 +289,7 @@ async function createConfigFile(classId) {
             }))
         };
         
-        fs.writeFileSync('./config.json', JSON.stringify(configData, null, 2), 'utf8');
+        fs.writeFileSync(path.join(__dirname, 'config.json'), JSON.stringify(configData, null, 2), 'utf8');
         console.log(`Config file created successfully with ${filteredLeafs.length} leafs (${allLeafs.length - filteredLeafs.length} tests/exams excluded).`);
         console.log('You can edit the EDIT_HERE_* fields in config.json to customize settings.');
     } catch (error) {
